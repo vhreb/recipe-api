@@ -1,8 +1,11 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
+from core import models
+from users.tests.test_user_api import UserAPITestMixin
 
-class ModelTests(TestCase):
+
+class ModelTests(UserAPITestMixin, TestCase):
 
     def setUp(self) -> None:
         self.password = 'Testpass123'
@@ -40,3 +43,11 @@ class ModelTests(TestCase):
         )
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
+
+    def test_tag_str(self):
+        tag = models.Tag.objects.create(
+            user=self.sample_user(),
+            name='Vegan',
+        )
+
+        self.assertEqual(str(tag), tag.name)

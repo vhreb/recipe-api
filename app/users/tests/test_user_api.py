@@ -16,6 +16,10 @@ class UserAPITestMixin:
     def create_user(cls, **kwargs):
         return get_user_model().objects.create_user(**kwargs)
 
+    @classmethod
+    def sample_user(cls):
+        return cls.create_user(email='test@gmail.com', password='testpassword')
+
 
 class PublicUserApiTestCase(UserAPITestMixin, TestCase):
 
