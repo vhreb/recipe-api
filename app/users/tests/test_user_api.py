@@ -10,6 +10,7 @@ class UserAPITestMixin:
 
     CREATE_USER_URL = reverse('users:create')
     TOKEN_URL = reverse('users:token')
+    ME_URL = reverse('users:me')
 
     @classmethod
     def create_user(cls, **kwargs):
@@ -96,3 +97,46 @@ class PublicUserApiTestCase(UserAPITestMixin, TestCase):
 
         self.assertNotIn('token', res.data)
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_retrieve_user_unauthorized(self):
+        res = self.client.get(self.ME_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PrivateUserAPITestCase(UserAPITestMixin, TestCase):
+
+    def setUp(self) -> None:
+        self.user = self.create_user(
+            email='test@gmail.com',
+            password='testpassword',
+            name='name',
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_retrieve_profile_success(self):
+        res = self.client.get(self.ME_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, {
+            'name': self.user.name,
+            'email': self.user.email,
+        })
+
+    def test_post_me_not_allowed(self):
+        res = self.client.post(self.ME_URL, {})
+
+        self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_update_user_profile(self):
+        payload = {
+            'name': 'newname',
+            'password': 'newpassword',
+        }
+        res = self.client.patch(self.ME_URL, payload)
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.name, payload['name'])
+        self.assertTrue(self.user.check_password(payload['password']))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
